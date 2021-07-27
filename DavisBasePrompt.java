@@ -1,4 +1,7 @@
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.File;
 import java.io.FileReader;
 import java.util.Scanner;
@@ -32,6 +35,16 @@ public class DavisBasePrompt {
 
 		// Display the welcome screen
 		splashScreen();
+
+		//check to see if metadata exists, if not create it
+		Path data = Paths.get("data");
+		Path tables = Paths.get("data/davisbase_columns.tbl");
+		Path columns = Paths.get("data/davisbase_columns.tbl");
+		if(!Files.isDirectory(data) & !Files.exists(tables) & !Files.exists(columns))
+		{
+			initializeDataStore();
+			System.out.println("Database metadata initialized");
+		}
 
 		// Variable to collect user input from the prompt
 		String userCommand = ""; 
@@ -100,8 +113,6 @@ public class DavisBasePrompt {
 			out.println("\tDisplay this help information.\n");
 			out.println("EXIT;");
 			out.println("\tExit the program.\n");
-			out.println("INITIALIZE;");
-			out.println("\tInitialize Metadata for database.\n");
 			out.println("HEXDUMP <table_name>;");
 			out.println("\tDisplays Hex dump of file of given table name.\n");
 			out.println(line("*",80));
@@ -159,10 +170,6 @@ public class DavisBasePrompt {
 				break;
 			case "quit":
 				isExit = true;
-			case "initialize":
-				initializeDataStore();
-				System.out.println("Database metadata initialized");
-				break;
 			case "hexdump":
 				hexDump(userCommand);
 				break;
@@ -335,7 +342,6 @@ public class DavisBasePrompt {
 	 * catalog files if they already exist.
 	 */
 	static void initializeDataStore() {
-
 		// Create data directory at the current OS location to hold
 		try {
 			File dataDir = new File("data");
@@ -393,7 +399,7 @@ public class DavisBasePrompt {
 		}
 	}
 
-	
+
 
 
 
