@@ -16,7 +16,7 @@ import static java.lang.System.out;
 public class DavisBasePrompt {
 
 	static String prompt = "davisql> ";
-	static String version = "v1.0b(example)";
+	static String version = "v1.0";
 	static String copyright = "©2016 Chris Irwin Davis";
 	static boolean isExit = false;
 
@@ -40,7 +40,7 @@ public class DavisBasePrompt {
 		Path data = Paths.get("data");
 		Path tables = Paths.get("data/davisbase_columns.tbl");
 		Path columns = Paths.get("data/davisbase_columns.tbl");
-		if(!Files.isDirectory(data) & !Files.exists(tables) & !Files.exists(columns))
+		if(!Files.isDirectory(data) | !Files.exists(tables) | !Files.exists(columns))
 		{
 			initializeDataStore();
 			System.out.println("Database metadata initialized");
@@ -180,27 +180,28 @@ public class DavisBasePrompt {
 	}
 	
 
-	/**
+
+	/*
 	 *  Stub method for dropping tables
-	 *  @param dropTableString is a String of the user input
 	 */
 	public static void dropTable(String dropTableString) {
 		System.out.println("STUB: This is the dropTable method.");
 		System.out.println("\tParsing the string:\"" + dropTableString + "\"");
 	}
 	
-	/**
+
+
+	/*
 	 *  Stub method for executing queries
-	 *  @param queryString is a String of the user input
 	 */
 	public static void parseQuery(String queryString) {
 		System.out.println("STUB: This is the parseQuery method");
 		System.out.println("\tParsing the string:\"" + queryString + "\"");
 	}
 
-	/**
+
+	/*
 	 *  Stub method for updating records
-	 *  @param updateString is a String of the user input
 	 */
 	public static void parseUpdate(String updateString) {
 		System.out.println("STUB: This is the dropTable method");
@@ -208,9 +209,8 @@ public class DavisBasePrompt {
 	}
 
 	
-	/**
+	/*
 	 *  Stub method for creating new tables
-	 *  @param queryString is a String of the user input
 	 */
 	public static void parseCreateTable(String createTableString) {
 		
@@ -220,42 +220,52 @@ public class DavisBasePrompt {
 
 		// new table in data directory
 		String tableFileName = "data/" + createTableTokens.get(2) + ".tbl";
+		Path tablePath = Paths.get(tableFileName);
+		if(Files.exists(tablePath))
+		{
+			System.out.println(createTableTokens.get(2) + "already exists.");
+			return;
+		}
 
 		try {
 			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
 			tableFile.setLength(pageSize);
 
-			//b-tree flags:
-			//	0x02  = index b-tree interior page
-			//	0x05  = table b-tree interior page
+			//1-byte b-tree flags:
+			//	0x02 = index b-tree interior page
+			//	0x05 = table b-tree interior page
 			//	0x0A = index b-tree leaf page
 			//	0x0D = table b-tree leaf page
 			//TODO: properly initialize
 			tableFile.seek(0);
 			tableFile.writeByte(0x0D);
 
-			//2-byte: # of cells on page used by records
+			//2-byte: num of records on page
 			//	initialized to 0
 			tableFile.seek(2);
-			tableFile.writeInt(0);
+			tableFile.writeShort(0);
 
-			//2-byte: page offset for the start of the cell content area
+			//2-byte: where record data begins (records are buttom -> top so it is 
+			//	actually the end of the records)
 			//	initialized to last spot on page
 			tableFile.seek(4);
-			tableFile.writeByte(0x1F);
-			tableFile.writeByte(0x0F);
+			tableFile.writeShort(0x01FF);
 
-			// 4-byte: page pointer references the page’s parent
-			// If this is a root page, then the special value 0xFFFFFFFF is used
-			//TODO: properly initialize
+			//4-byte: page pointer
+			//	Table or Index interior page - page number of rightmost child
+			//	Table or Index leaf page - page number of sibling to the right
+			//	initialized to 0
+			tableFile.seek(6);
+			tableFile.writeInt(0);
+
+			//4-byte: page pointer references the page’s parent
+			//	If this is a root page, then the special value 0xFFFFFFFF is used
+			//	initialized to -1 = 0xFFFFFFFF
 			tableFile.seek(10);
-			tableFile.writeByte(0xFF);
-			tableFile.writeByte(0xFF);
-			tableFile.writeByte(0xFF);
-			tableFile.writeByte(0xFF);
+			tableFile.writeInt(-1);
 
-			// 2*cells on page: An array of 2-byte ints that indicate the page offset location of each data cell
-			// maintained in key-sorted order
+			//2*(num records on page): array of 2-byte ints that indicate the 
+			// location of each record on page maintained in key-sorted order
 			//tableFile.seek(16);
 
 			tableFile.close();
@@ -264,55 +274,86 @@ public class DavisBasePrompt {
 			System.out.println(e);
 		}
 		
+		// Insert a row in the davisbase_tables
+		// TODO: call insertRecord with following query
+		// INSERT INTO davisbase_tables (rowid, table_name)
+		// VALUES (TBD, createTableTokens.get(2));
 
 
-		// Insert a row in the davisbase_tables table
-		try {
-			RandomAccessFile tableFile = new RandomAccessFile("data/davisbase_tables.tbl", "rw");
+		// Insert rows in the davisbase_columns for each column in the new table
+		// TODO: call insertRecord with following query
+		// INSERT INTO davisbase_columns (rowid, table_name, column_name, data_type, ordinal_position, is_nullable)
+		// VALUES (TBD, createTableTokens.get(2), iterate_through_table_tokens, iterate_through_table_tokens, ???, iterate_through_table_tokens)
 
-			//2-byte: # of cells on page used by records
-			//	initialized to 0
-			tableFile.seek(2);
-			tableFile.writeInt(0);
-
-			//2-byte: page offset for the start of the cell content area
-			//	initialized to last spot on page
-			tableFile.seek(4);
-			tableFile.writeByte(0x1F);
-			tableFile.writeByte(0x0F);
-
-			// 2*cells on page: An array of 2-byte ints that indicate the page offset location of each data cell
-			// maintained in key-sorted order
-			//tableFile.seek(16);
-
-			tableFile.close();
-		}
-		catch(Exception e) {
-			System.out.println(e);
-		}
-
-
-
-		// Insert rows in the davisbase_columns table for each column in the new table
-		try {
-			RandomAccessFile tableFile = new RandomAccessFile("data/davisbase_columns.tbl", "rw");
-
-			
-
-			tableFile.close();
-		}
-		catch(Exception e) {
-			System.out.println(e);
-		}
+		//TODO: create index file
+		// <table_name>.<column_name>.ndx
 
 	}
 
 
+	/*
+	 *  Stub method for inserting record into table
+	 */
+	public static void insertRecord(String insertString) {
+
+		// insertString is in the form:
+		// INSERT INTO <table_name> (column1, column2, ...)
+		// VALUES (value1, value2, ...);
+		insertString.toLowerCase();
+		insertString = insertString.replace("(", " ").replace(")", " ").replace(",", " ").replace(";", "");
+		ArrayList<String> insertTokens = new ArrayList<String>(Arrays.asList(insertString.trim().split(" ")));
+		String tableName = insertTokens.get(2);
+		int valuesIndex = insertTokens.indexOf("values");
+
+		//TODO: retrieve data type of columns from davisbase_columns table
+		String[] header = new String[insertTokens.size() - valuesIndex]; // number of columns
+		
+		//place column values into array
+		String[] body = new String[insertTokens.size() - valuesIndex];
+		for (int i=valuesIndex+1; i<insertTokens.size(); i++)
+		{
+			int temp = 0;
+			body[temp] = insertTokens.get(i);
+			temp++;
+		}
+
+		//TODO: create Record object
+
+		try {
+			RandomAccessFile tableFile = new RandomAccessFile("data/" + tableName + ".tbl", "rw");
+			//last page of table
+			tableFile.seek(6);
+			int lastPage = tableFile.readInt();
+			//number of records on last page
+			tableFile.seek(pageSize*lastPage + 2);
+			int numRecords = tableFile.readInt();
+			//page offset for the start of record data
+			tableFile.seek(4);
+			int recordStart = tableFile.readInt();
+			//pointer to added record goes here
+			tableFile.seek(pageSize*lastPage + 16 + (numRecords+1)*2);
+
+			//TODO: get record size from Record object and check if there is enough room on page for record
+			//		recordStart - (16 + (numRecords+1)*2) > (payload + 6)
+
+			//TODO: increment stored value of number of records on page
+			//		(value of)(tableFile.seek(pageSize*lastPage + 2))++
+			//	add the pointer to the start of the new record to array of record pointers
+			//		(valueof)(tableFile.seek(4))-(payload + 6) to tableFile.seek(pageSize*lastPage + 16 + (numRecords)*2);
+			//	also set this value to the page offset for the start of record data
+			//		tableFile.seek(4) = (valueof)(tableFile.seek(4))-(payload + 6)
+			//	insert values of Record object to this index
+			
 
 
+			tableFile.close();
+		}
+		catch(Exception e) {
+			System.out.println(e);
+		}
 
 
-
+	}
 
 
 
