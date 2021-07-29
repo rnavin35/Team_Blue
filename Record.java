@@ -7,10 +7,9 @@ public class Record {
     short[] header;
     // column values
     String[] body;
-
-    // page record is located on, maybe not necessary
+    // page record is located on
     int page;
-    // location of record on page, maybe not necessary
+    // location of record on page
     int location;
 
 
@@ -18,9 +17,13 @@ public class Record {
 
     //TODO: calculate payload
 
-    //TODO: convert record data to hex
+    //TODO: read data from database
+    //      get column datatypes from davisbase_columns.tbl
+    //      read from database
 
-    //TODO: convert hex to record data
+    //TODO: write data to database
+    //      get column datatypes from davisbase_columns.tbl
+    //      write to database
 
 
     public int typeToInt(String dataType, String value) {

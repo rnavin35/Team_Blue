@@ -27,7 +27,6 @@ public class DavisBasePrompt {
 	 *  Each time the semicolon (;) delimiter is entered, the userCommand 
 	 *  String is re-populated.
 	 */
-
 	static Scanner scanner = new Scanner(System.in).useDelimiter(";");
 
 
@@ -173,6 +172,10 @@ public class DavisBasePrompt {
 			case "hexdump":
 				hexDump(userCommand);
 				break;
+			case "insert":
+				System.out.println("CASE: INSERT INTO");
+				insertRecord(userCommand);
+				break;
 			default:
 				System.out.println("I didn't understand the command: \"" + userCommand + "\"");
 				break;
@@ -276,14 +279,14 @@ public class DavisBasePrompt {
 		
 		// Insert a row in the davisbase_tables
 		// TODO: call insertRecord with following query
-		// INSERT INTO davisbase_tables (rowid, table_name)
-		// VALUES (TBD, createTableTokens.get(2));
+		// 		INSERT INTO davisbase_tables (rowid, table_name)
+		// 		VALUES (TBD, createTableTokens.get(2));
 
 
 		// Insert rows in the davisbase_columns for each column in the new table
 		// TODO: call insertRecord with following query
-		// INSERT INTO davisbase_columns (rowid, table_name, column_name, data_type, ordinal_position, is_nullable)
-		// VALUES (TBD, createTableTokens.get(2), iterate_through_table_tokens, iterate_through_table_tokens, ???, iterate_through_table_tokens)
+		//		 INSERT INTO davisbase_columns (rowid, table_name, column_name, data_type, ordinal_position, is_nullable)
+		// 		 VALUES (TBD, createTableTokens.get(2), iterate_through_table_tokens, iterate_through_table_tokens, ???, iterate_through_table_tokens)
 
 		//TODO: create index file
 		// <table_name>.<column_name>.ndx
@@ -299,6 +302,7 @@ public class DavisBasePrompt {
 		// insertString is in the form:
 		// INSERT INTO <table_name> (column1, column2, ...)
 		// VALUES (value1, value2, ...);
+
 		insertString.toLowerCase();
 		insertString = insertString.replace("(", " ").replace(")", " ").replace(",", " ").replace(";", "");
 		ArrayList<String> insertTokens = new ArrayList<String>(Arrays.asList(insertString.trim().split(" ")));
@@ -317,8 +321,7 @@ public class DavisBasePrompt {
 			temp++;
 		}
 
-		//TODO: create Record object
-
+		//TODO: create Record object to insert
 		try {
 			RandomAccessFile tableFile = new RandomAccessFile("data/" + tableName + ".tbl", "rw");
 			//last page of table
@@ -329,20 +332,33 @@ public class DavisBasePrompt {
 			int numRecords = tableFile.readInt();
 			//page offset for the start of record data
 			tableFile.seek(4);
-			int recordStart = tableFile.readInt();
-			//pointer to added record goes here
+			int recordStart = tableFile.readShort();
+			//getting last inserted record_id and incrementing
+			tableFile.seek(recordStart+2);
+			int rowid = tableFile.readInt();
+			rowid++;
+			//where new record pointer will go
 			tableFile.seek(pageSize*lastPage + 16 + (numRecords+1)*2);
 
-			//TODO: get record size from Record object and check if there is enough room on page for record
-			//		recordStart - (16 + (numRecords+1)*2) > (payload + 6)
-
-			//TODO: increment stored value of number of records on page
-			//		(value of)(tableFile.seek(pageSize*lastPage + 2))++
-			//	add the pointer to the start of the new record to array of record pointers
-			//		(valueof)(tableFile.seek(4))-(payload + 6) to tableFile.seek(pageSize*lastPage + 16 + (numRecords)*2);
-			//	also set this value to the page offset for the start of record data
-			//		tableFile.seek(4) = (valueof)(tableFile.seek(4))-(payload + 6)
-			//	insert values of Record object to this index
+			// TODO: 
+			//		get record size from Record object and check if there is enough room on page for record
+			//			recordStart - (16 + (numRecords+1)*2) > (payload + 6)
+			//
+			//		increment stored value of number of records on page and store new value
+			//			numRecords++;
+			//			tableFile.seek(pageSize*lastPage + 2);
+			//			tableFile.writeInt(numRecords+1);
+			//
+			//		add the new record pointer to array of pointers
+			//			tableFile.seek(pageSize*lastPage + 16 + (numRecords)*2);
+			//			tableFile.writeShort(recordStart-(payload+6));
+			//
+			//		also set this value to the page offset for the start of record data
+			//			tableFile.seek(4);
+			//			tableFile.writeShort(recordStart-(payload+6));
+			//
+			//		insert values of Record object to this index
+			//			tableFile.seek(recordStart-(payload+6));
 			
 
 
