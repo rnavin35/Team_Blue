@@ -152,7 +152,7 @@ public class DavisBasePrompt {
 				break;
 			case "create":
 				System.out.println("CASE: CREATE");
-				parseCreateTable(userCommand);
+				createTable(userCommand);
 				break;
 			case "update":
 				System.out.println("CASE: UPDATE");
@@ -212,21 +212,30 @@ public class DavisBasePrompt {
 	}
 
 	
-	/*
-	 *  Stub method for creating new tables
-	 */
-	public static void parseCreateTable(String createTableString) {
+	
+	public static void createTable(String createTableString) {
+		
+		// createTableString is in the form:
+		//
+		// CREATE <table_name> (
+		// 		column1 dataType1,
+		//		column2 dataType2
+		// );
 		
 		System.out.println("STUB: Calling your method to create a table");
 		System.out.println("Parsing the string:\"" + createTableString + "\"");
-		ArrayList<String> createTableTokens = new ArrayList<String>(Arrays.asList(createTableString.split(" ")));
+		createTableString = createTableString.replace("(", " ").replace(")", " ").replace(",", " ").replace("\t", "");
+		createTableString = createTableString.replaceAll("\\s{2,}", " ");
+		ArrayList<String> createTableTokens = new ArrayList<String>(Arrays.asList(createTableString.trim().split(" ")));
+
+		
 
 		// new table in data directory
-		String tableFileName = "data/" + createTableTokens.get(2) + ".tbl";
+		String tableFileName = "data/" + createTableTokens.get(1) + ".tbl";
 		Path tablePath = Paths.get(tableFileName);
 		if(Files.exists(tablePath))
 		{
-			System.out.println(createTableTokens.get(2) + "already exists.");
+			System.out.println(createTableTokens.get(1) + "already exists.");
 			return;
 		}
 
@@ -294,17 +303,16 @@ public class DavisBasePrompt {
 	}
 
 
-	/*
-	 *  Stub method for inserting record into table
-	 */
+
 	public static void insertRecord(String insertString) {
 
 		// insertString is in the form:
+		//
 		// INSERT INTO <table_name> (column1, column2, ...)
 		// VALUES (value1, value2, ...);
 
-		insertString.toLowerCase();
-		insertString = insertString.replace("(", " ").replace(")", " ").replace(",", " ").replace(";", "");
+		insertString = insertString.replace("(", " ").replace(")", " ").replace(",", " ").replace("\t", "");
+		insertString = insertString.replaceAll("\\s{2,}", " ");
 		ArrayList<String> insertTokens = new ArrayList<String>(Arrays.asList(insertString.trim().split(" ")));
 		String tableName = insertTokens.get(2);
 		int valuesIndex = insertTokens.indexOf("values");
