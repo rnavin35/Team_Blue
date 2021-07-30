@@ -230,7 +230,7 @@ public class DavisBasePrompt {
 
 		
 
-		// new table in data directory
+		// check if table file already exists
 		String tableFileName = "data/" + createTableTokens.get(1) + ".tbl";
 		Path tablePath = Paths.get(tableFileName);
 		if(Files.exists(tablePath))
@@ -289,13 +289,14 @@ public class DavisBasePrompt {
 		// Insert a row in the davisbase_tables
 		// TODO: call insertRecord with following query
 		// 		INSERT INTO davisbase_tables (rowid, table_name)
-		// 		VALUES (TBD, createTableTokens.get(2));
+		// 		VALUES (TBD, createTableTokens.get(1));
 
 
 		// Insert rows in the davisbase_columns for each column in the new table
 		// TODO: call insertRecord with following query
-		//		 INSERT INTO davisbase_columns (rowid, table_name, column_name, data_type, ordinal_position, is_nullable)
-		// 		 VALUES (TBD, createTableTokens.get(2), iterate_through_table_tokens, iterate_through_table_tokens, ???, iterate_through_table_tokens)
+		//		for (int i=2; i<createTableTokens.size()-1; i++)
+		//			INSERT INTO davisbase_columns (rowid, table_name, column_name, data_type, ordinal_position, is_nullable)
+		// 			VALUES (TBD, createTableTokens.get(1), createTableTokens.get(i), createTableTokens.get(i+1), ???, ???)
 
 		//TODO: create index file
 		// <table_name>.<column_name>.ndx
