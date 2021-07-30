@@ -4,7 +4,7 @@ import java.util.Map;
 
 public class Record {
 
-    short payload;      // payload size = 6 + header.length() + length of record body (tbd based on data type)
+    short payload;      // payload size = header.length + length of record body (tbd based on data type)
     int rowid;          // set in DavisBasePrompt
     byte[] header;      // data type of columns
     String[] body;      // values of columns excluding rowid
@@ -14,19 +14,78 @@ public class Record {
     int page;           // page record is on
     int location;       // location of record on page
 
-    public Record(String table, int page, int location, int rowid, String[] body, String[] column) {
+    public Record(String table, int rowid, String[] body, String[] column) {
         this.tableName = table;
-        this.page = page;
-        this.location = location;
+        //this.page = page;         // can't be determined before payload
+        //this.location = location; // can't be determined before payload
         this.rowid = rowid;
         this.body = body;
         this.column = column;
     }
 
+
     // writing record to database:
-    //      columnInfo(tableName): gets column datatypes from davisbase_columns.tbl
-    //      setHeaderAndPayload(): creates header based on data types (and string length) and sets payload size
-    //      write to database: handled by DavisBasePrompt probably, though can be a function here
+    //      DavisBasePrompt calls setHeaderAndPayload() to create header based on data type and set payload
+    //          setHeaderAndPayload() calls columnInfo() to check davisbase_columns to make sure column names are valid and get data type info
+    //      DavisBasePrompt makes sure there is enough room on page for record and sets values for page and location
+    //      DavisBasePrompt calls writeRecord()
+
+
+    // BEFORE CALLING THIS FUNCTION: page and location must be set
+    public int writeRecord(RandomAccessFile recordFile) throws Exception {
+
+        //start of record on page
+        recordFile.seek(DavisBasePrompt.pageSize*page + location);
+        recordFile.writeInt(payload);
+        recordFile.writeInt(rowid);
+        for (int i=0; i<header.length; i++)
+        {
+            recordFile.writeByte(header[i]);
+        }
+        //start of writing record body
+        for (int i=0; i<body.length; i++)
+        {
+            switch (header[i+1]) {
+                case 0x00:
+                    break;
+                case 0x01:
+                    recordFile.writeByte(body[i].charAt(0));
+                    break;
+                case 0x02:
+                    recordFile.writeShort(Short.parseShort(body[i]));
+                    break;
+                case 0x03:
+                    recordFile.writeInt(Integer.parseInt(body[i]));
+                    break;
+                case 0x04:
+                    recordFile.writeLong(Long.parseLong(body[i]));
+                    break;
+                case 0x05:
+                    recordFile.writeFloat(Float.parseFloat(body[i]));
+                    break;
+                case 0x06:
+                    recordFile.writeDouble(Double.parseDouble(body[i]));
+                    break;
+                case 0x08:
+                    recordFile.writeInt(Integer.parseInt(body[i]));
+                    break;
+                case 0x09:
+                    recordFile.writeInt(Integer.parseInt(body[i]));
+                    break;
+                case 0x0A:
+                    recordFile.writeLong(Long.parseLong(body[i]));
+                    break;
+                case 0x0B:
+                    // TODO: find better way to write date and validate its format is correct
+                    recordFile.writeBytes(body[i].substring(0, 8));
+                    break;
+                default:
+                    recordFile.writeBytes(body[i]);
+            }
+        }
+
+        return 0;
+    }
 
 
     // use datatype of columns and length of strings to set the header and payload
@@ -38,8 +97,8 @@ public class Record {
         //first spot is number of columns (excluding rowid)
         header[0] = (byte)(nameAndType.size() - 1);
         
-        //initialize for loop
-        payload = 0x00;
+        //payload size = header.length + length of record body (tbd based on data type)
+        payload = (byte)header.length;
 
         //getting correct byte per data type
         for (int i=1; i<header.length; i++)
@@ -94,8 +153,6 @@ public class Record {
                 default: //string:  0x0C + n
                     payload += (header[i] - 0x0C);
             }
-
-
         }
 
         return 0;
@@ -111,7 +168,7 @@ public class Record {
         RandomAccessFile columnsFile = new RandomAccessFile("data/davisbase_columns.tbl", "rw");
 
         //number of pages in columns table
-        int maxPg = (int)(columnsFile.length()/DavisBasePrompt.pageSize);
+        int maxPg = (int)(columnsFile.length()/DavisBasePrompt.pageSize - 1);
         for (int i=0; i<maxPg; i++)
         {
             //number of records on page
