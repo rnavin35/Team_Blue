@@ -4,34 +4,107 @@ import java.util.Map;
 
 public class Record {
 
-    short payload;          // payload size
-    int rowid;
-    short[] header;         // data type of columns
-    String[] body;          // column values
-    String tableFileName;   // table record is in
-    int page;               // page record is on
-    int location;           // location of record on page
+    short payload;      // payload size = 6 + header.length() + length of record body (tbd based on data type)
+    int rowid;          // set in DavisBasePrompt
+    byte[] header;      // data type of columns
+    String[] body;      // values of columns excluding rowid
+    String[] column;    // names of columns excluding rowid (used for insert record)
 
-    public Record(String fn, int page, int location, int rowid) {
+    String tableName;   // table record is in
+    int page;           // page record is on
+    int location;       // location of record on page
 
-        this.tableFileName = fn;
+    public Record(String table, int page, int location, int rowid, String[] body, String[] column) {
+        this.tableName = table;
         this.page = page;
         this.location = location;
         this.rowid = rowid;
-
-        //TODO: complete initialization
-
+        this.body = body;
+        this.column = column;
     }
 
-    //TODO: write data to database
-    //      get column datatypes from davisbase_columns.tbl using columnInfo(tableName)
-    //      calculate payload
-    //      write to database
+    // writing record to database:
+    //      columnInfo(tableName): gets column datatypes from davisbase_columns.tbl
+    //      setHeaderAndPayload(): creates header based on data types (and string length) and sets payload size
+    //      write to database: handled by DavisBasePrompt probably, though can be a function here
+
+
+    // use datatype of columns and length of strings to set the header and payload
+    // BEFORE CALLING THIS FUNCTION: column and body must be set
+    public int setHeaderAndPayload() throws Exception {
+        Map<String, String> nameAndType = columnInfo(tableName);
+        header = new byte[nameAndType.size()];
+
+        //first spot is number of columns (excluding rowid)
+        header[0] = (byte)(nameAndType.size() - 1);
+        
+        //initialize for loop
+        payload = 0x00;
+
+        //getting correct byte per data type
+        for (int i=1; i<header.length; i++)
+        {
+            // check if column name is valid for table
+            if (!nameAndType.containsKey(column[i-1]))
+            {
+                System.out.println("Column: " + column[i-1] + " does not exist in table: " + tableName);
+                return -1;
+            }
+
+            // column[i-1]              = name of column
+            // body[i-1]                = value of column
+            // nameAndType.get(column)  = returns string of data type
+            // typeToInt(column, value) = converts string of data type to equivalent byte
+            header[i] = typeToByte(nameAndType.get(column[i-1]), body[i-1]);
+
+            //increase payload count depending on data type 
+            switch (header[i]) {
+                case 0x00:
+                    break;
+                case 0x01:
+                    payload += 0x01;
+                    break;
+                case 0x02:
+                    payload += 0x02;
+                    break;
+                case 0x03:
+                    payload += 0x04;
+                    break;
+                case 0x04:
+                    payload += 0x08;
+                    break;
+                case 0x05:
+                    payload += 0x04;
+                    break;
+                case 0x06:
+                    payload += 0x08;
+                    break;
+                case 0x08:
+                    payload += 0x01;
+                    break;
+                case 0x09:
+                    payload += 0x04;
+                    break;
+                case 0x0A:
+                    payload += 0x08;
+                    break;
+                case 0x0B:
+                    payload += 0x08;
+                    break;
+                default: //string:  0x0C + n
+                    payload += (header[i] - 0x0C);
+            }
+
+
+        }
+
+        return 0;
+    }
 
 
     // get all column names and datatypes from davisbase_columns associated with a given table
     // used for inserting a new record (to make header)
-    public static Map<String, String> columnInfo(String tableName) throws Exception{
+    public static Map<String, String> columnInfo(String tableName) throws Exception {
 
         // <column name, column data type>
         Map<String, String> nameAndType = new HashMap<String, String>();
@@ -98,8 +171,6 @@ public class Record {
 
 
         }
-        
-
 		
         columnsFile.close();
         return nameAndType;
@@ -107,7 +178,7 @@ public class Record {
 
 
 
-    public byte typeToInt(String dataType, String value) {
+    public static byte typeToByte(String dataType, String value) {
         dataType.toLowerCase();
         switch (dataType) {
 			case "null":
@@ -139,7 +210,7 @@ public class Record {
 
 
 
-    public String IntToType(byte dataType, String value) {
+    public static String byteToType(byte dataType, String value) {
         switch (dataType) {
 			case 0x00:
 				return "null";
