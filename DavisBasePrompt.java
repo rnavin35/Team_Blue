@@ -207,7 +207,7 @@ public class DavisBasePrompt {
 
         if(numPages == 0)
         {
-            table.seek(2);
+            table.seek(4);
             short lastRec = table.readShort();
             if(lastRec == 0)
             {
@@ -222,7 +222,7 @@ public class DavisBasePrompt {
         }
         else
         {
-            table.seek(2 + numPages*pageSize);
+            table.seek(4 + numPages*pageSize);
             short lastRec = table.readShort();
             if(lastRec == 0)
             {
@@ -314,9 +314,7 @@ public class DavisBasePrompt {
 	static void hexDump(String queryString)
 	{
 		ArrayList<String> queryTokens = new ArrayList<String>(Arrays.asList(queryString.split(" ")));
-		String fileName = "data/" + queryTokens.get(1) + ".tbl";
-		String[] args2 = new String[1];
-		args2[0] = fileName;
-		HexDump.main(args2);
+		String fileName = queryTokens.get(1);
+		HexDump.displayBinaryHex(fileName);
 	}
 }

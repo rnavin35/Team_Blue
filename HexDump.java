@@ -219,4 +219,18 @@ public class HexDump {
 		}
 		return s;
 	}
+
+	public static void displayBinaryHex(String fileName)
+    {
+        out.println("USAGE: java HexDump <" + fileName + ">");
+        try {
+            // Open the file given in arg[0] as a RandomAccessFile
+            raf = new RandomAccessFile("data/" + fileName + ".tbl","r");
+            // Call displayHexDump() method to display the file
+            displayHexDump();
+        }
+        catch (IOException e) {
+            out.println(e);
+        }
+    }
 }

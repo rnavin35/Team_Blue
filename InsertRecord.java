@@ -2,8 +2,6 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import javax.lang.model.util.ElementScanner14;
-
 public class InsertRecord {
 
     public static void insertRecord(String insertString) {
@@ -15,25 +13,26 @@ public class InsertRecord {
 
 		insertString = insertString.replace("(", " ").replace(")", " ").replace(",", " ").replace("\t", "");
 		insertString = insertString.replaceAll("\\s{2,}", " ");
+		
 		ArrayList<String> insertTokens = new ArrayList<String>(Arrays.asList(insertString.trim().split(" ")));
 		String tableName = insertTokens.get(2);
 		int valuesIndex = insertTokens.indexOf("values");
 		
 		//place column names into array
-		String[] column = new String[insertTokens.size() - valuesIndex];
+		String[] column = new String[insertTokens.size() - valuesIndex -1];
+		int temp = 0;
 		for (int i=3; i<valuesIndex; i++)
 		{
-			int temp = 0;
-			column[temp] = insertTokens.get(i);
+			column[temp] = new String(insertTokens.get(i));
 			temp++;
 		}
 		
 		//place column values into array
-		String[] body = new String[insertTokens.size() - valuesIndex];
+		temp = 0;
+		String[] body = new String[insertTokens.size() - valuesIndex -1];
 		for (int i=valuesIndex+1; i<insertTokens.size(); i++)
 		{
-			int temp = 0;
-			body[temp] = insertTokens.get(i);
+			body[temp] = new String(insertTokens.get(i));
 			temp++;
 		}
 
@@ -46,7 +45,6 @@ public class InsertRecord {
 			tableFile.seek(DavisBasePrompt.pageSize*lastPage + 2);
 			int numRecs = tableFile.readShort();
 			//page offset for the start of record data
-			tableFile.seek(DavisBasePrompt.pageSize*lastPage + 4);
 			int recordStart = tableFile.readShort();
 			//getting last inserted record_id and incrementing
 			int rowid = DavisBasePrompt.getRowid(tableFile, lastPage);

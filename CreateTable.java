@@ -34,7 +34,7 @@ public class CreateTable
         createColumnTokens = new ArrayList<String>(Arrays.asList(columns.split(", |,")));
 
         //split column from related info
-        Column [] savedData = new Column[createColumnTokens.size()];
+        Column [] savedData = new Column[createColumnTokens.size()+1];
         for(int i =0; i < createColumnTokens.size(); i++)
         {
             ArrayList<String> columnDetails = new ArrayList<String>(Arrays.asList(createColumnTokens.get(i).split(" ")));
@@ -59,6 +59,11 @@ public class CreateTable
                 savedData[i] = new Column(tableName, columnDetails.get(0),columnDetails.get(1),"yes",i+2);
             }
         }
+        savedData[savedData.length -1] = new Column(tableName, "rowid", "int", "no", 1);
+
+
+
+
 
         //insert table name into davisbase_tables
         try
@@ -83,7 +88,7 @@ public class CreateTable
                 tableFile.seek(lastPage*DavisBasePrompt.pageSize + 0x02);
                 tableFile.writeShort(numRecs);
                 
-                if(numRecs == 0)
+                if(numRecs == 1)
                 {
                     //new record area start
                     lastRecord = (short)(DavisBasePrompt.pageSize - recSize);
@@ -138,13 +143,155 @@ public class CreateTable
             }
             tableFile.close();
         }
-        catch(IOException e)
-        {
+        catch(Exception e) {
+			System.out.println(e);
+		}
 
-        }
+
+
+
+
+
+
+
+
 
         //TODO:insert table columns into davisbase_columns
-        
+        try {
+			RandomAccessFile tableFile = new RandomAccessFile("data/davisbase_columns.tbl", "rw");
+			
+            for (int i=0; i<savedData.length; i++)
+            {
+                //last page of table
+                int lastPage = (int)(tableFile.length()/DavisBasePrompt.pageSize - 1);
+                //number of records on last page
+                tableFile.seek(DavisBasePrompt.pageSize*lastPage + 2);
+                int numRecs = tableFile.readShort();
+                //page offset for the start of record data
+                tableFile.seek(DavisBasePrompt.pageSize*lastPage + 4);
+                int recordStart = tableFile.readShort();
+                //getting last inserted record_id and incrementing
+                int rowid = DavisBasePrompt.getRowid(tableFile, lastPage);
+                //calculate payload
+                int payload = (short)(6 + savedData[i].table.length()
+                                              + savedData[i].name.length()
+                                              + savedData[i].type.length()
+                                              + 1
+                                              + savedData[i].isnull.length());
+
+                //get record size from Record object and check if there is enough room on page for record
+                if(numRecs == 0 | recordStart - (16 + (numRecs+1)*2) > (payload + 6))
+                {
+                    //increment stored value of number of records on page and store new value
+                    numRecs++;
+                    tableFile.seek(lastPage*DavisBasePrompt.pageSize + 0x02);
+                    tableFile.writeShort(numRecs);
+                    
+                    if(numRecs == 1)
+                    {
+                        //new record area start
+                        recordStart = (short)(DavisBasePrompt.pageSize - (payload+6));
+                    }
+                    else
+                    {
+                        //new record area start
+                        recordStart = (short)(recordStart - (payload+6));
+                    }
+                    //save value
+                    tableFile.writeShort(recordStart);
+
+                    //add the new record pointer to array of pointers
+                    tableFile.seek(lastPage*DavisBasePrompt.pageSize + 16 + (numRecs-1)*2);
+                    tableFile.writeShort(recordStart);
+                }
+                //not enough room for record on this page, make a new one
+                else
+                {
+                    //increment number of pages
+                    lastPage++;
+                    //set new length
+                    tableFile.setLength(tableFile.length() + DavisBasePrompt.pageSize);
+                    //set record start
+                    recordStart = (short)(DavisBasePrompt.pageSize - (payload + 6));
+
+                    //NEW PAGE INITIALIZATION
+
+                    //b-tree flag
+                    //TODO: check if properly initialized
+                    tableFile.seek(DavisBasePrompt.pageSize*lastPage + 0);
+                    tableFile.writeByte(0x0D);
+
+                    //num of records on page
+                    tableFile.seek(DavisBasePrompt.pageSize*lastPage + 2);
+                    tableFile.writeShort(0x01);
+
+                    //where record data begins
+                    tableFile.seek(DavisBasePrompt.pageSize*lastPage + 4);
+                    tableFile.writeShort(recordStart);
+
+                    //b-tree page pointer
+                    //TODO: check if properly initialized
+                    tableFile.seek(DavisBasePrompt.pageSize*lastPage + 6);
+                    tableFile.writeInt(0);
+
+                    //page pointer references the page’s parent
+                    //TODO: check if properly initialized
+                    tableFile.seek(DavisBasePrompt.pageSize*lastPage + 10);
+                    tableFile.writeInt(-1);
+
+                    //new record pointer
+                    tableFile.seek(DavisBasePrompt.pageSize*lastPage + 16);
+                    tableFile.writeShort(recordStart);
+                }
+
+                //writing record to database
+                tableFile.seek(DavisBasePrompt.pageSize*lastPage + recordStart);
+                tableFile.writeShort(payload);
+                tableFile.writeInt(rowid);
+
+                //RECORD HEADER START
+                //numColumns: 5
+                tableFile.writeByte(0x05);
+                //table name: text
+                tableFile.writeByte((byte)(0x0C + savedData[i].table.length()));
+                //column name: text
+                tableFile.writeByte((byte)(0x0C + savedData[i].name.length()));
+                //data type: text
+                tableFile.writeByte((byte)(0x0C + savedData[i].type.length()));
+                //ordinal: tinyint
+                tableFile.writeByte(0x01);
+                //data type: text
+                tableFile.writeByte((byte)(0x0C + savedData[i].isnull.length()));
+
+                //RECORD BODY START
+                //table name
+                tableFile.writeBytes(savedData[i].table);
+                //column name
+                tableFile.writeBytes(savedData[i].name);
+                //data type
+                tableFile.writeBytes(savedData[i].type);
+                //ordinal
+                tableFile.writeByte(savedData[i].ordinal);
+                //is nullable
+                tableFile.writeBytes(savedData[i].isnull);
+
+            }
+
+
+			tableFile.close();
+		}
+		catch(Exception e) {
+			System.out.println(e);
+		}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -174,7 +321,7 @@ public class CreateTable
 			//	actually the end of the records)
 			//	initialized to last spot on page
 			tableFile.seek(4);
-			tableFile.writeShort(0x01FF);
+			tableFile.writeShort(0);
 
 			//4-byte: page pointer
 			//	Table or Index interior page - page number of rightmost child

@@ -98,7 +98,7 @@ public class Record {
         header[0] = (byte)(nameAndType.size() - 1);
         
         //payload size = header.length + length of record body (tbd based on data type)
-        payload = (byte)header.length;
+        payload = (byte)nameAndType.size();
 
         //getting correct byte per data type
         for (int i=1; i<header.length; i++)
@@ -169,7 +169,7 @@ public class Record {
 
         //number of pages in columns table
         int maxPg = (int)(columnsFile.length()/DavisBasePrompt.pageSize - 1);
-        for (int i=0; i<maxPg; i++)
+        for (int i=0; i<=maxPg; i++)
         {
             //number of records on page
             columnsFile.seek(DavisBasePrompt.pageSize*i + 2);
@@ -179,7 +179,7 @@ public class Record {
             columnsFile.seek(DavisBasePrompt.pageSize*i + 16);
             for (int j=0; j<numRecords; j++)
             {
-                recordPointers[i] = columnsFile.readShort();
+                recordPointers[j] = columnsFile.readShort();
             }
 
             /*
@@ -200,12 +200,13 @@ public class Record {
             for (int j=0; j<numRecords; j++)
             {
                 //get string lengths
-                columnsFile.seek(recordPointers[j] + 7);
+                columnsFile.seek(DavisBasePrompt.pageSize*i + recordPointers[j] + 7);
+
                 int tableStringSize = (columnsFile.readByte() & 0xFF) - 0x0C; //have to do it like this to get right number because of padding
                 int columnStringSize = (columnsFile.readByte() & 0xFF) - 0x0C;
                 int dataStringSize = (columnsFile.readByte() & 0xFF) - 0x0C;
 
-                columnsFile.seek(DavisBasePrompt.pageSize*i + 12);
+                columnsFile.seek(DavisBasePrompt.pageSize*i + recordPointers[j] + 12);
                 byte[] readBytes = new byte[tableStringSize];
                 columnsFile.read(readBytes, 0, tableStringSize);
                 String readTableName = new String(readBytes);
