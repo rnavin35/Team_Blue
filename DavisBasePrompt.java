@@ -7,6 +7,10 @@ import java.io.IOException;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
+
 import static java.lang.System.out;
 
 // @author Chris Irwin Davis
@@ -167,6 +171,9 @@ public class DavisBasePrompt {
 			case "create":
 				CreateTable.createTable(userCommand);
 				break;
+			case "show":
+				ShowTables.showTable(userCommand);
+				break;
 			case "update":
 				parseUpdate(userCommand);
 				break;
@@ -181,6 +188,7 @@ public class DavisBasePrompt {
 				break;
 			case "quit":
 				isExit = true;
+				break;
 			case "hexdump":
 				hexDump(userCommand);
 				break;
@@ -210,6 +218,67 @@ public class DavisBasePrompt {
 	public static void parseUpdate(String updateString) {
 		System.out.println("STUB: This is the dropTable method");
 		System.out.println("Parsing the string:\"" + updateString + "\"");
+	}
+
+
+
+	//formats column names and values for display
+	public static void displayResults(Map<String, ArrayList<String>> displayList) {
+
+		int numRecs = 0;
+		int displayWidth = 2;
+		//displays all column names
+		System.out.print("| ");
+		for (String columnName:displayList.keySet())
+		{
+			System.out.print(columnName);
+			displayWidth += columnName.length();
+
+			String longest = Collections.max(displayList.get(columnName), Comparator.comparing(String::length));
+			int maxLength = Math.max(longest.length(), columnName.length());
+
+			//pads end with spaces
+			for (int j=0; j < (maxLength - columnName.length()); j++)
+			{
+				System.out.print(" ");
+				displayWidth++;
+			}
+
+			System.out.print(" | ");
+			displayWidth += 2;
+			numRecs = Math.max(displayList.get(columnName).size(), numRecs);
+		}
+
+
+		System.out.print("\n");
+		for (int i=0; i<displayWidth; i++)
+			System.out.print("-");
+
+
+		//displays all records
+		for (int i=0; i<numRecs; i++)
+		{
+			System.out.print("\n| ");
+			for (String columnName:displayList.keySet())
+			{
+				System.out.print(displayList.get(columnName).get(i));
+
+				String longest = Collections.max(displayList.get(columnName), Comparator.comparing(String::length));
+				int maxLength = Math.max(longest.length(), columnName.length());
+
+				//pads end with spaces
+				for (int j=0; j < (maxLength - displayList.get(columnName).get(i).length()); j++)
+				{
+					System.out.print(" ");
+				}
+
+				System.out.print(" | ");
+			}
+			
+		}
+
+		System.out.print("\n");
+		
 	}
 
 
