@@ -2,6 +2,8 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import javax.lang.model.util.ElementScanner14;
+
 public class InsertRecord {
 
     public static void insertRecord(String insertString) {
@@ -42,43 +44,48 @@ public class InsertRecord {
 			int lastPage = (int)(tableFile.length()/DavisBasePrompt.pageSize - 1);
 			//number of records on last page
 			tableFile.seek(DavisBasePrompt.pageSize*lastPage + 2);
-			int numRecords = tableFile.readInt();
+			int numRecs = tableFile.readShort();
 			//page offset for the start of record data
-			tableFile.seek(4);
+			tableFile.seek(DavisBasePrompt.pageSize*lastPage + 4);
 			int recordStart = tableFile.readShort();
 			//getting last inserted record_id and incrementing
 			int rowid = DavisBasePrompt.getRowid(tableFile, lastPage);
-			//where new record pointer will go
-			tableFile.seek(DavisBasePrompt.pageSize*lastPage + 16 + (numRecords+1)*2);
 
 			//create Record object to insert
 			Record newRecord = new Record(tableName, rowid, body, column);
 			newRecord.setHeaderAndPayload();
 
 			//get record size from Record object and check if there is enough room on page for record
-			if(numRecords == 0 | recordStart - (16 + (numRecords+1)*2) > (newRecord.payload + 6))
+			if(numRecs == 0 | recordStart - (16 + (numRecs+1)*2) > (newRecord.payload + 6))
 			{
-				//save value of newRecord pointer
-				recordStart = recordStart-(newRecord.payload+6);
-
 				//increment stored value of number of records on page and store new value
-				numRecords++;
-				tableFile.seek(DavisBasePrompt.pageSize*lastPage + 2);
-				tableFile.writeShort(numRecords);
+				numRecs++;
+				tableFile.seek(lastPage*DavisBasePrompt.pageSize + 0x02);
+				tableFile.writeShort(numRecs);
+				
+				if(numRecs == 1)
+				{
+					//new record area start
+                    recordStart = (short)(DavisBasePrompt.pageSize - (newRecord.payload+6));
+				}
+				else
+				{
+                    //new record area start
+                    recordStart = (short)(recordStart - (newRecord.payload+6));
+				}
+				//save value
+				tableFile.writeShort(recordStart);
 
 				//add the new record pointer to array of pointers
-				tableFile.seek(DavisBasePrompt.pageSize*lastPage + 16 + (numRecords)*2);
+				tableFile.seek(lastPage*DavisBasePrompt.pageSize + 16 + (numRecs-1)*2);
 				tableFile.writeShort(recordStart);
-
-				//also set this pointer to the page offset for the start of record data
-				tableFile.seek(DavisBasePrompt.pageSize*lastPage + 4);
-				tableFile.writeShort(recordStart);
+				//write record here
+				tableFile.seek(lastPage*DavisBasePrompt.pageSize + recordStart);
 
 				//save values of Record pointer and write to database
 				newRecord.page = lastPage;
 				newRecord.location = recordStart;
 				newRecord.writeRecord(tableFile);
-
 
 			}
 			//not enough room for record on this page, make a new one
@@ -137,6 +144,4 @@ public class InsertRecord {
 
 	}
 
-
-    
 }

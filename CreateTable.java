@@ -78,6 +78,37 @@ public class CreateTable
             //check if there is room on page
             if(numRecs == 0 | lastRecord - (16 + (numRecs+1)*2) > recSize)
             {
+                //increment numrecs and save value
+                numRecs++;
+                tableFile.seek(lastPage*DavisBasePrompt.pageSize + 0x02);
+                tableFile.writeShort(numRecs);
+                
+                if(numRecs == 0)
+                {
+                    //new record area start
+                    lastRecord = (short)(DavisBasePrompt.pageSize - recSize);
+                }
+                else
+                {
+                    //new record area start
+                    lastRecord = (short)(lastRecord - recSize);
+                }
+
+                tableFile.writeShort(lastRecord);
+                //last pointer spot
+                tableFile.seek(lastPage*DavisBasePrompt.pageSize + 16 + (numRecs-1)*2);
+                tableFile.writeShort(lastRecord);
+                //write record here
+                tableFile.seek(lastPage*DavisBasePrompt.pageSize + lastRecord);
+                
+                //start writing record
+                tableFile.writeShort(payload);
+                tableFile.writeInt(rowid);
+                //header
+                tableFile.writeByte(1);
+                tableFile.writeByte(tableName.length()+0x0C);
+                //body
+                tableFile.writeBytes(tableName);
 
             }
             //add new page
@@ -91,11 +122,11 @@ public class CreateTable
                 tableFile.seek(lastPage*DavisBasePrompt.pageSize + 2);
                 tableFile.writeShort(1);
                 //new record pointer
-                tableFile.writeShort(0x200 - recSize);
+                tableFile.writeShort((short)(DavisBasePrompt.pageSize - recSize));
                 tableFile.seek(lastPage*DavisBasePrompt.pageSize + 16);
-                tableFile.writeShort(0x200 - recSize);
+                tableFile.writeShort((short)(DavisBasePrompt.pageSize - recSize));
                 //start writing record
-                tableFile.seek(lastPage*DavisBasePrompt.pageSize + 0x200 - recSize);
+                tableFile.seek(lastPage*DavisBasePrompt.pageSize + DavisBasePrompt.pageSize - recSize);
                 tableFile.writeShort(payload);
                 tableFile.writeInt(rowid);
                 //header
@@ -112,7 +143,13 @@ public class CreateTable
 
         }
 
-        //insert table columns into davisbase_columns
+        //TODO:insert table columns into davisbase_columns
+        
+
+
+
+
+
 
         //create table file
         try {
