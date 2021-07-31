@@ -3,9 +3,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.File;
-import java.io.FileReader;
+import java.io.IOException;
 import java.util.Scanner;
-import java.util.SortedMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import static java.lang.System.out;
@@ -90,32 +89,32 @@ public class DavisBasePrompt {
 		System.out.println("\t\t" + s);
 	}
 	
-		//Help: Display supported commands
-		public static void help() {
-			out.println(line("*",80));
-			out.println("SUPPORTED COMMANDS\n");
-			out.println("All commands below are case insensitive\n");
-			out.println("SHOW TABLES;");
-			out.println("\tDisplay the names of all tables.\n");
-			//printCmd("SELECT * FROM <table_name>;");
-			//printDef("Display all records in the table <table_name>.");
-			out.println("SELECT <column_list> FROM <table_name> [WHERE <condition>];");
-			out.println("\tDisplay table records whose optional <condition>");
-			out.println("\tis <column_name> = <value>.\n");
-			out.println("DROP TABLE <table_name>;");
-			out.println("\tRemove table data (i.e. all records) and its schema.\n");
-			out.println("UPDATE TABLE <table_name> SET <column_name> = <value> [WHERE <condition>];");
-			out.println("\tModify records data whose optional <condition> is\n");
-			out.println("VERSION;");
-			out.println("\tDisplay the program version.\n");
-			out.println("HELP;");
-			out.println("\tDisplay this help information.\n");
-			out.println("EXIT;");
-			out.println("\tExit the program.\n");
-			out.println("HEXDUMP <table_name>;");
-			out.println("\tDisplays Hex dump of file of given table name.\n");
-			out.println(line("*",80));
-		}
+	//Help: Display supported commands
+	public static void help() {
+		out.println(line("*",80));
+		out.println("SUPPORTED COMMANDS\n");
+		out.println("All commands below are case insensitive\n");
+		out.println("SHOW TABLES;");
+		out.println("\tDisplay the names of all tables.\n");
+		//printCmd("SELECT * FROM <table_name>;");
+		//printDef("Display all records in the table <table_name>.");
+		out.println("SELECT <column_list> FROM <table_name> [WHERE <condition>];");
+		out.println("\tDisplay table records whose optional <condition>");
+		out.println("\tis <column_name> = <value>.\n");
+		out.println("DROP TABLE <table_name>;");
+		out.println("\tRemove table data (i.e. all records) and its schema.\n");
+		out.println("UPDATE TABLE <table_name> SET <column_name> = <value> [WHERE <condition>];");
+		out.println("\tModify records data whose optional <condition> is\n");
+		out.println("VERSION;");
+		out.println("\tDisplay the program version.\n");
+		out.println("HELP;");
+		out.println("\tDisplay this help information.\n");
+		out.println("EXIT;");
+		out.println("\tExit the program.\n");
+		out.println("HEXDUMP <table_name>;");
+		out.println("\tDisplays Hex dump of file of given table name.\n");
+		out.println(line("*",80));
+	}
 
 
 	public static String getVersion() {
@@ -148,11 +147,11 @@ public class DavisBasePrompt {
 				break;
 			case "drop":
 				System.out.println("CASE: DROP");
-				dropTable(userCommand);
+				DropTable.dropTable(userCommand);
 				break;
 			case "create":
 				System.out.println("CASE: CREATE");
-				createTable(userCommand);
+				CreateTable.createTable(userCommand);
 				break;
 			case "update":
 				System.out.println("CASE: UPDATE");
@@ -174,22 +173,12 @@ public class DavisBasePrompt {
 				break;
 			case "insert":
 				System.out.println("CASE: INSERT INTO");
-				insertRecord(userCommand);
+				InsertRecord.insertRecord(userCommand);
 				break;
 			default:
 				System.out.println("I didn't understand the command: \"" + userCommand + "\"");
 				break;
 		}
-	}
-	
-
-
-	/*
-	 *  Stub method for dropping tables
-	 */
-	public static void dropTable(String dropTableString) {
-		System.out.println("STUB: This is the dropTable method.");
-		System.out.println("\tParsing the string:\"" + dropTableString + "\"");
 	}
 	
 
@@ -211,192 +200,41 @@ public class DavisBasePrompt {
 		System.out.println("Parsing the string:\"" + updateString + "\"");
 	}
 
-	
-	
-	public static void createTable(String createTableString) {
-		
-		// createTableString is in the form:
-		//
-		// CREATE <table_name> (
-		// 		column1 dataType1,
-		//		column2 dataType2
-		// );
-		
-		System.out.println("STUB: Calling your method to create a table");
-		System.out.println("Parsing the string:\"" + createTableString + "\"");
-		createTableString = createTableString.replace("(", " ").replace(")", " ").replace(",", " ").replace("\t", "");
-		createTableString = createTableString.replaceAll("\\s{2,}", " ");
-		ArrayList<String> createTableTokens = new ArrayList<String>(Arrays.asList(createTableString.trim().split(" ")));
-
-		
-
-		// check if table file already exists
-		String tableFileName = "data/" + createTableTokens.get(1) + ".tbl";
-		Path tablePath = Paths.get(tableFileName);
-		if(Files.exists(tablePath))
-		{
-			System.out.println(createTableTokens.get(1) + "already exists.");
-			return;
-		}
-
-		try {
-			RandomAccessFile tableFile = new RandomAccessFile(tableFileName, "rw");
-			tableFile.setLength(pageSize);
-
-			//1-byte b-tree flags:
-			//	0x02 = index b-tree interior page
-			//	0x05 = table b-tree interior page
-			//	0x0A = index b-tree leaf page
-			//	0x0D = table b-tree leaf page
-			//TODO: properly initialize
-			tableFile.seek(0);
-			tableFile.writeByte(0x0D);
-
-			//2-byte: num of records on page
-			//	initialized to 0
-			tableFile.seek(2);
-			tableFile.writeShort(0);
-
-			//2-byte: where record data begins (records are buttom -> top so it is 
-			//	actually the end of the records)
-			//	initialized to last spot on page
-			tableFile.seek(4);
-			tableFile.writeShort(0x01FF);
-
-			//4-byte: page pointer
-			//	Table or Index interior page - page number of rightmost child
-			//	Table or Index leaf page - page number of sibling to the right
-			//	initialized to 0
-			tableFile.seek(6);
-			tableFile.writeInt(0);
-
-			//4-byte: page pointer references the page’s parent
-			//	If this is a root page, then the special value 0xFFFFFFFF is used
-			//	initialized to -1 = 0xFFFFFFFF
-			tableFile.seek(10);
-			tableFile.writeInt(-1);
-
-			//2*(num records on page): array of 2-byte ints that indicate the 
-			// location of each record on page maintained in key-sorted order
-			//tableFile.seek(16);
-
-			tableFile.close();
-		}
-		catch(Exception e) {
-			System.out.println(e);
-		}
-		
-		// Insert a row in the davisbase_tables
-		// TODO: call insertRecord with following query
-		// 		INSERT INTO davisbase_tables (rowid, table_name)
-		// 		VALUES (TBD, createTableTokens.get(1));
 
 
-		// Insert rows in the davisbase_columns for each column in the new table
-		// TODO: call insertRecord with following query
-		//		for (int i=2; i<createTableTokens.size()-1; i++)
-		//			INSERT INTO davisbase_columns (rowid, table_name, column_name, data_type, ordinal_position, is_nullable)
-		// 			VALUES (TBD, createTableTokens.get(1), createTableTokens.get(i), createTableTokens.get(i+1), ???, ???)
+	//gets last used rowid and increments by 1
+	public static int getRowid(RandomAccessFile table, int numPages) throws IOException {
 
-		//TODO: create index file
-		// <table_name>.<column_name>.ndx
+        if(numPages == 0)
+        {
+            table.seek(2);
+            short lastRec = table.readShort();
+            if(lastRec == 0)
+            {
+                return 1;
+            }
+            else
+            {
+                table.seek(lastRec + 2);
+                return table.readInt()+1;
+            }
 
-	}
-
-
-
-	public static void insertRecord(String insertString) {
-
-		// insertString is in the form:
-		//
-		// INSERT INTO <table_name> (column1, column2, ...)
-		// VALUES (value1, value2, ...);
-
-		insertString = insertString.replace("(", " ").replace(")", " ").replace(",", " ").replace("\t", "");
-		insertString = insertString.replaceAll("\\s{2,}", " ");
-		ArrayList<String> insertTokens = new ArrayList<String>(Arrays.asList(insertString.trim().split(" ")));
-		String tableName = insertTokens.get(2);
-		int valuesIndex = insertTokens.indexOf("values");
-
-		//TODO: retrieve data type of columns from davisbase_columns table
-		String[] header = new String[insertTokens.size() - valuesIndex]; // number of columns
-		
-		//place column values into array
-		String[] body = new String[insertTokens.size() - valuesIndex];
-		for (int i=valuesIndex+1; i<insertTokens.size(); i++)
-		{
-			int temp = 0;
-			body[temp] = insertTokens.get(i);
-			temp++;
-		}
-
-		//TODO: create Record object to insert
-		try {
-			RandomAccessFile tableFile = new RandomAccessFile("data/" + tableName + ".tbl", "rw");
-			//last page of table
-			tableFile.seek(6);
-			int lastPage = tableFile.readInt();
-			//number of records on last page
-			tableFile.seek(pageSize*lastPage + 2);
-			int numRecords = tableFile.readInt();
-			//page offset for the start of record data
-			tableFile.seek(4);
-			int recordStart = tableFile.readShort();
-			//getting last inserted record_id and incrementing
-			tableFile.seek(recordStart+2);
-			int rowid = tableFile.readInt();
-			rowid++;
-			//where new record pointer will go
-			tableFile.seek(pageSize*lastPage + 16 + (numRecords+1)*2);
-
-			// TODO: 
-			//		get record size from Record object and check if there is enough room on page for record
-			//			recordStart - (16 + (numRecords+1)*2) > (payload + 6)
-			//
-			//		increment stored value of number of records on page and store new value
-			//			numRecords++;
-			//			tableFile.seek(pageSize*lastPage + 2);
-			//			tableFile.writeInt(numRecords+1);
-			//
-			//		add the new record pointer to array of pointers
-			//			tableFile.seek(pageSize*lastPage + 16 + (numRecords)*2);
-			//			tableFile.writeShort(recordStart-(payload+6));
-			//
-			//		also set this value to the page offset for the start of record data
-			//			tableFile.seek(4);
-			//			tableFile.writeShort(recordStart-(payload+6));
-			//
-			//		insert values of Record object to this index
-			//			tableFile.seek(recordStart-(payload+6));
-			
-
-
-			tableFile.close();
-		}
-		catch(Exception e) {
-			System.out.println(e);
-		}
-
-
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        }
+        else
+        {
+            table.seek(2 + numPages*pageSize);
+            short lastRec = table.readShort();
+            if(lastRec == 0)
+            {
+                return getRowid(table, numPages-1);
+            }
+            else
+            {
+                table.seek(lastRec + 2);
+                return table.readInt()+1;
+            }
+        }
+    }
 
 
 

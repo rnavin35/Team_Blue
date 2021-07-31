@@ -36,7 +36,7 @@ public class Record {
 
         //start of record on page
         recordFile.seek(DavisBasePrompt.pageSize*page + location);
-        recordFile.writeInt(payload);
+        recordFile.writeShort(payload);
         recordFile.writeInt(rowid);
         for (int i=0; i<header.length; i++)
         {
@@ -293,6 +293,40 @@ public class Record {
                 return "date";
             default: //string:  0x0C + n
 				return "text";
+        }
+    }
+
+
+
+    public static boolean checkType(String check)
+    {
+        switch (check) {
+			case "tinyint":
+				return true;
+            case "smallint":
+				return true;
+			case "int":
+				return true;
+			case "bigint":
+				return true;
+			case "long":
+				return true;
+			case "float":
+				return true;
+			case "double":
+				return true;
+            case "year":
+			    return true;
+			case "time":
+				return true;
+			case "datetime":
+				return true;
+            case "date":
+				return true;
+			case "text":
+				return true;
+            default:
+                return false; 
         }
     }
 }
