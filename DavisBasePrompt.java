@@ -19,7 +19,7 @@ public class DavisBasePrompt {
 	static String copyright = "©2016 Chris Irwin Davis";
 	static boolean isExit = false;
 
-	// Page size for alll files is 512 bytes by default.
+	// Page size for all files is 512 bytes by default.
 	static long pageSize = 512; 
  
 	/*  The Scanner class is used to collect user commands from the prompt
@@ -92,27 +92,44 @@ public class DavisBasePrompt {
 	//Help: Display supported commands
 	public static void help() {
 		out.println(line("*",80));
+
 		out.println("SUPPORTED COMMANDS\n");
 		out.println("All commands below are case insensitive\n");
+
+		out.println("CREATE TABLE <table_name> (<column_name> <data_type> <NOT NULL>, ...);");
+		out.println("\tCreates and initializes table with given schema.\n");
+
 		out.println("SHOW TABLES;");
 		out.println("\tDisplay the names of all tables.\n");
-		//printCmd("SELECT * FROM <table_name>;");
-		//printDef("Display all records in the table <table_name>.");
+
 		out.println("SELECT <column_list> FROM <table_name> [WHERE <condition>];");
 		out.println("\tDisplay table records whose optional <condition>");
 		out.println("\tis <column_name> = <value>.\n");
-		out.println("DROP TABLE <table_name>;");
-		out.println("\tRemove table data (i.e. all records) and its schema.\n");
+
+		//printCmd("SELECT * FROM <table_name>;");
+		//printDef("Display all records in the table <table_name>.");
+
 		out.println("UPDATE TABLE <table_name> SET <column_name> = <value> [WHERE <condition>];");
 		out.println("\tModify records data whose optional <condition> is\n");
-		out.println("VERSION;");
-		out.println("\tDisplay the program version.\n");
-		out.println("HELP;");
-		out.println("\tDisplay this help information.\n");
-		out.println("EXIT;");
-		out.println("\tExit the program.\n");
+
+		out.println("DROP TABLE <table_name>;");
+		out.println("\tRemove table data (i.e. all records) and its schema.\n");
+
 		out.println("HEXDUMP <table_name>;");
 		out.println("\tDisplays Hex dump of file of given table name.\n");
+
+		out.println("INSERT INTO <table_name> (<column_name>, ...) VALUES (<data_type>, ...);");
+		out.println("\tInserts record into given table name using values corresponding to given columns.\n");
+		
+		out.println("VERSION;");
+		out.println("\tDisplay the program version.\n");
+
+		out.println("HELP;");
+		out.println("\tDisplay this help information.\n");
+
+		out.println("EXIT;");
+		out.println("\tExit the program.\n");
+
 		out.println(line("*",80));
 	}
 
@@ -142,19 +159,15 @@ public class DavisBasePrompt {
 		// This switch handles a very small list of hardcoded commands of known syntax.
 		switch (commandTokens.get(0)) {
 			case "select":
-				System.out.println("CASE: SELECT");
 				parseQuery(userCommand);
 				break;
 			case "drop":
-				System.out.println("CASE: DROP");
 				DropTable.dropTable(userCommand);
 				break;
 			case "create":
-				System.out.println("CASE: CREATE");
 				CreateTable.createTable(userCommand);
 				break;
 			case "update":
-				System.out.println("CASE: UPDATE");
 				parseUpdate(userCommand);
 				break;
 			case "help":
@@ -172,7 +185,6 @@ public class DavisBasePrompt {
 				hexDump(userCommand);
 				break;
 			case "insert":
-				System.out.println("CASE: INSERT INTO");
 				InsertRecord.insertRecord(userCommand);
 				break;
 			default:
