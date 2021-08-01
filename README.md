@@ -6,4 +6,6 @@ insert table tentatively done: creates table file and inserts values into column
 
 show tables done along with helper function to display any Map<column_name, ArrayList<column_values>>
 
-drop table in progress
+drop table almost done (not uploaded yet)
+
+delete record in progress
