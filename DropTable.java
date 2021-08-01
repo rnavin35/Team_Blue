@@ -58,13 +58,14 @@ public class DropTable {
             int numPages = (int)(tableFile.length()/DavisBasePrompt.pageSize);
             short spot;
             byte [] tableNameBytes;
+            short numRecords;
 
 			//iterate through all pages
             for(int i=0; i<numPages; i++)
             {
                 //number of records on page
                 tableFile.seek(i*DavisBasePrompt.pageSize + 2);
-                short numRecords = tableFile.readShort();
+                numRecords = tableFile.readShort();
                 //first record start
                 int recordPointer = (int)(16 + i*DavisBasePrompt.pageSize);
 
@@ -217,10 +218,6 @@ public class DropTable {
 
 							tempRecordPointer+=2;
 						}
-
-                        //zero out last pointer
-						//columnsTable.seek(i*DavisBasePrompt.pageSize + tempRecordPointer);
-                        //columnsTable.writeShort(0);
 
                         //decrement stored number of records on page
 						numRecords--;

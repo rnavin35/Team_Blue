@@ -124,6 +124,9 @@ public class DavisBasePrompt {
 
 		out.println("INSERT INTO <table_name> (<column_name>, ...) VALUES (<data_type>, ...);");
 		out.println("\tInserts record into given table name using values corresponding to given columns.\n");
+
+		out.println("DELETE FROM TABLE <table_name> [WHERE condition];");
+		out.println("\tDeletes record from given table meeting condition.\n");
 		
 		out.println("VERSION;");
 		out.println("\tDisplay the program version.\n");
@@ -170,6 +173,9 @@ public class DavisBasePrompt {
 				break;
 			case "create":
 				CreateTable.createTable(userCommand);
+				break;
+			case "delete":
+				DeleteRecord.deleteRecord(userCommand);
 				break;
 			case "show":
 				ShowTables.showTable(userCommand);
