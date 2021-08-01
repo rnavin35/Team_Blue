@@ -222,7 +222,10 @@ public class DavisBasePrompt {
 
 
 
-	//formats column names and values for display
+	// formats column names and values for display
+	// input is in the form: Map<column_name, ArrayList<column_values>>
+	// 	  NOTE: if a value is null for that record, it MUST be in the arraylist as null
+	//    or else the record values will not line up properly
 	public static void displayResults(Map<String, ArrayList<String>> displayList) {
 
 		int numRecs = 0;
@@ -283,7 +286,7 @@ public class DavisBasePrompt {
 
 
 
-	//gets last used rowid and increments by 1
+	//gets last used rowid
 	public static int getRowid(RandomAccessFile table, int numPages) throws IOException {
 
         if(numPages == 0)
@@ -292,12 +295,12 @@ public class DavisBasePrompt {
             short lastRec = table.readShort();
             if(lastRec == 0)
             {
-                return 1;
+                return 0;
             }
             else
             {
                 table.seek(lastRec + 2);
-                return table.readInt()+1;
+                return table.readInt();
             }
 
         }
@@ -312,7 +315,7 @@ public class DavisBasePrompt {
             else
             {
                 table.seek(lastRec + 2);
-                return table.readInt()+1;
+                return table.readInt();
             }
         }
     }

@@ -47,7 +47,7 @@ public class InsertRecord {
 			//page offset for the start of record data
 			int recordStart = tableFile.readShort();
 			//getting last inserted record_id and incrementing
-			int rowid = DavisBasePrompt.getRowid(tableFile, lastPage);
+			int rowid = DavisBasePrompt.getRowid(tableFile, lastPage) + 1;
 
 			//create Record object to insert
 			Record newRecord = new Record(tableName, rowid, body, column);

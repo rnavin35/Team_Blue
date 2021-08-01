@@ -78,7 +78,7 @@ public class CreateTable
             short numRecs = tableFile.readShort();
             short lastRecord = tableFile.readShort();
             //get last rowid and increemnt
-            int rowid = DavisBasePrompt.getRowid(tableFile, lastPage);
+            int rowid = DavisBasePrompt.getRowid(tableFile, lastPage) + 1;
 
             //check if there is room on page
             if(numRecs == 0 | lastRecord - (16 + (numRecs+1)*2) > recSize)
@@ -171,7 +171,7 @@ public class CreateTable
                 tableFile.seek(DavisBasePrompt.pageSize*lastPage + 4);
                 int recordStart = tableFile.readShort();
                 //getting last inserted record_id and incrementing
-                int rowid = DavisBasePrompt.getRowid(tableFile, lastPage);
+                int rowid = DavisBasePrompt.getRowid(tableFile, lastPage) + 1;
                 //calculate payload
                 int payload = (short)(6 + savedData[i].table.length()
                                               + savedData[i].name.length()
